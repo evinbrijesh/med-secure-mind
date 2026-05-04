@@ -1,73 +1,187 @@
-# Welcome to your Lovable project
+# Med Secure Mind (HealthAssess)
 
-## Project info
+AI-assisted health risk assessment web application built with React, TypeScript, and Tailwind CSS.
 
-**URL**: https://lovable.dev/projects/c07f819d-ff4b-4a1f-ba22-071b77da74f6
+> ⚠️ **Medical Disclaimer:** This software is for informational/educational use only. It is **not** a diagnostic tool and must not replace professional medical advice, diagnosis, or treatment.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Overview
 
-**Use Lovable**
+Med Secure Mind provides a guided health assessment form where users input:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c07f819d-ff4b-4a1f-ba22-071b77da74f6) and start prompting.
+- personal profile details (name, age, gender)
+- symptom description
+- symptom duration and severity
+- optional medical history
 
-Changes made via Lovable will be committed automatically to this repo.
+The app generates:
 
-**Use your preferred IDE**
+- a **risk score** (0–100)
+- an **urgency tier** (`low`, `medium`, `high`, `emergency`)
+- a **disease category** guess
+- **possible condition statements**
+- prioritized **recommendations**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+An in-browser Hugging Face model initialization is attempted (`Bio_ClinicalBERT` via `@huggingface/transformers`), but current result generation is deterministic/rule-based and designed to fail open if model loading is unavailable.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## Tech Stack
+
+- **Language:** TypeScript
+- **Framework:** React 18
+- **Build tool:** Vite 5
+- **Routing:** React Router 6
+- **Styling:** Tailwind CSS + CSS variables
+- **UI primitives/components:** shadcn/ui + Radix UI + Lucide icons
+- **State/data:** React local state, TanStack Query provider scaffolded
+- **Linting:** ESLint 9 + TypeScript ESLint
+
+---
+
+## Project Structure
+
+```text
+.
+├── src/
+│   ├── components/
+│   │   ├── HealthAssessment.tsx   # Assessment UI + scoring and recommendation logic
+│   │   ├── Header.tsx             # App header/branding
+│   │   └── ui/                    # shadcn/ui component set
+│   ├── hooks/                     # Shared hooks (toast/mobile)
+│   ├── lib/
+│   │   └── utils.ts               # Utility helpers (class merge)
+│   ├── pages/
+│   │   ├── Index.tsx              # Main page composition
+│   │   └── NotFound.tsx           # 404 route
+│   ├── App.tsx                    # Providers + route table
+│   ├── main.tsx                   # App bootstrap
+│   └── index.css                  # Global design tokens + base styles
+├── public/                        # Static assets
+├── CLAUDE.md                      # Architecture context for AI agents
+├── README.md                      # This documentation
+├── components.json                # shadcn/ui configuration + aliases
+├── tailwind.config.ts             # Tailwind theme/extensions
+├── vite.config.ts                 # Vite setup + aliasing
+└── med-secure-mind-main/          # Duplicate snapshot (non-primary, not active root)
+```
+
+---
+
+## Core Assessment Logic (Current Behavior)
+
+The assessment pipeline in `src/components/HealthAssessment.tsx` follows this sequence:
+
+1. Parse and normalize user input.
+2. Match symptom text against condition keyword sets.
+3. Infer disease category from best matches.
+4. Compute risk score using weighted factors:
+   - age
+   - severity
+   - duration
+   - emergency/critical keywords
+   - medical history presence
+5. Map score to urgency:
+   - `<25` → `low`
+   - `25–44` → `medium`
+   - `45–64` → `high`
+   - `>=65` → `emergency`
+6. Produce recommendation list and summary text.
+
+If model initialization fails (for example, WebGPU/browser constraints), the application continues normally with rule-based analysis.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ recommended
+- npm 9+ (or compatible)
+
+### Install
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Run development server
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Default Vite dev server is configured on port **8080**.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build for production
 
-**Use GitHub Codespaces**
+```sh
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Preview production build
 
-## What technologies are used for this project?
+```sh
+npm run preview
+```
 
-This project is built with:
+### Lint
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+npm run lint
+```
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/c07f819d-ff4b-4a1f-ba22-071b77da74f6) and click on Share -> Publish.
+## Configuration Notes
 
-## Can I connect a custom domain to my Lovable project?
+- Path alias `@/*` resolves to `src/*` (configured in `tsconfig.json` and `vite.config.ts`).
+- TypeScript strictness is currently relaxed:
+  - `noImplicitAny: false`
+  - `strictNullChecks: false`
+- Tailwind theme includes medical-oriented design tokens and custom gradients/shadows.
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Routing
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Defined in `src/App.tsx`:
+
+- `/` → `Index` page
+- `*` → `NotFound` fallback
+
+Keep concrete routes above wildcard catch-all.
+
+---
+
+## Security & Privacy Notes
+
+- No backend API or database is currently present in this workspace.
+- Assessment processing is client-side.
+- There is no persisted auth/session model in the current implementation.
+- Do not interpret UI “secure/private” language as regulatory compliance by default.
+
+---
+
+## Known Gotchas
+
+1. **WebGPU/model compatibility:** `device: 'webgpu'` may fail based on browser/hardware support.
+2. **Fail-open AI path:** The app still returns assessments if model loading fails.
+3. **Duplicate project folder:** `med-secure-mind-main/` exists as a snapshot copy; root folder is the active project.
+
+---
+
+## Suggested Next Improvements (Documentation Roadmap)
+
+- Add automated tests for scoring and urgency thresholds.
+- Move medical heuristics to a dedicated domain module for easier validation/versioning.
+- Add a backend boundary if persistence, analytics, or audit trails are required.
+- Add structured logging and error telemetry.
+
+---
+
+## License
+
+No explicit license file is currently present in this repository.
+If open-source distribution is intended, add a `LICENSE` file and update this section.
